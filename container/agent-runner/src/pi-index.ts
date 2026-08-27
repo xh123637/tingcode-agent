@@ -37,6 +37,7 @@ import { resolveAgentRuntimeKind } from './runtime-config.js';
 import { adaptClaudeMcpToolsToPi } from './runtime/pi/pi-tools.js';
 import { PiRuntimeAdapter } from './runtime/pi/pi-runtime.js';
 import { runPiQueryAttempt } from './runtime/pi/pi-runner.js';
+import { formatProviderEndpointError } from './utils.js';
 
 const WORKSPACE_GROUP =
   process.env.TINYCODE_WORKSPACE_GROUP ||
@@ -348,9 +349,12 @@ async function runTurn(
       customTools,
       provider: {
         endpointKind: provider.endpointKind,
-        baseUrl: process.env.ANTHROPIC_BASE_URL,
+        baseUrl:
+          process.env.OPENAI_BASE_URL || process.env.ANTHROPIC_BASE_URL,
         apiKey:
-          process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN,
+          process.env.OPENAI_API_KEY ||
+          process.env.ANTHROPIC_API_KEY ||
+          process.env.ANTHROPIC_AUTH_TOKEN,
       },
       skillPaths: [
         path.join(process.env.CLAUDE_CONFIG_DIR || '', 'skills'),
@@ -439,7 +443,7 @@ async function main(): Promise<void> {
       status: 'error',
       result: null,
       error:
-        'ANTHROPIC_MODEL is required for a custom Anthropic-compatible provider.',
+        'OPENAI_MODEL is required for a custom Codex/OpenAI-compatible provider.',
     });
     process.exitCode = 1;
     return;
@@ -517,7 +521,9 @@ async function main(): Promise<void> {
       applyTurnContext(input, ctx, latestIpcInputMessage(next.messages));
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = formatProviderEndpointError(
+      error instanceof Error ? error.message : String(error),
+    );
     log(`Agent error: ${message}`);
     if (error instanceof Error && error.stack)
       log(`Agent error stack:\n${error.stack}`);

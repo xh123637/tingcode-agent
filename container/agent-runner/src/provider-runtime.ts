@@ -35,12 +35,13 @@ export function resolveClaudeQueryModelRuntime(
  * Resolve the provider/model contract once at runner startup.
  *
  * New hosts inject an authoritative endpoint-kind marker. Falling back to
- * ANTHROPIC_BASE_URL keeps the runner compatible with older hosts and images.
+ * OPENAI_BASE_URL keeps the runner compatible with newer hosts, while
+ * ANTHROPIC_BASE_URL remains as an older-image fallback.
  */
 export function resolveClaudeProviderRuntime(
   env: Readonly<Record<string, string | undefined>>,
 ): ClaudeProviderRuntime {
-  const model = env.ANTHROPIC_MODEL?.trim() ?? '';
+  const model = env.OPENAI_MODEL?.trim() || env.ANTHROPIC_MODEL?.trim() || '';
   const marker = (
     env[TINYCODE_CLAUDE_ENDPOINT_KIND_ENV] || env[CLAUDE_ENDPOINT_KIND_ENV]
   )
@@ -49,7 +50,7 @@ export function resolveClaudeProviderRuntime(
   const endpointKind: ClaudeEndpointKind =
     marker === 'official' || marker === 'custom'
       ? marker
-      : env.ANTHROPIC_BASE_URL?.trim()
+      : env.OPENAI_BASE_URL?.trim() || env.ANTHROPIC_BASE_URL?.trim()
         ? 'custom'
         : 'official';
 

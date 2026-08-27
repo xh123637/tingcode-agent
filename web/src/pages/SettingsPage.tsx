@@ -164,7 +164,7 @@ export function SettingsPage() {
     'main-agent':
       '管理主智能体的头像、系统附加能力、宿主机配置继承和上下文压缩策略。',
     'host-integration':
-      '管理宿主机 Claude 目录以及共享 Plugin Catalog 的来源。',
+      '管理宿主机模型目录以及共享 Plugin Catalog 的来源。',
   };
 
   const legacyRoute =

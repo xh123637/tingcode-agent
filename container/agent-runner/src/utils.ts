@@ -13,6 +13,31 @@ export function shorten(input: string, maxLen = 180): string {
 }
 
 /**
+ * Rewrite provider endpoint 404 errors into a diagnostic users can act on.
+ *
+ * Third-party Codex/OpenAI-compatible relay services frequently return their
+ * website's HTML 404 page for unknown paths. The agent runner currently
+ * surfaces that raw HTML verbatim, which is useless in the chat UI. Keep the
+ * detection anchored to a real HTTP 404 response plus HTML/Not Found markers
+ * so normal file or route 404s never get rewritten.
+ */
+export function formatProviderEndpointError(input: string): string {
+  if (!input) return input;
+  const html404 =
+    /\b404\b/.test(input) &&
+    (/<!doctype html|<html|<\/html|page not found|not found \|/i.test(input) ||
+      /text\/html/i.test(input));
+  const sdk404 =
+    /(?:404|not found).*?base.?url|base.?url.*?(?:404|not found)/i.test(input);
+  if (!html404 && !sdk404) return input;
+  return (
+    '第三方接口地址无效：请求返回了 404，说明 TinyCode 访问的地址不是可用的 API ' +
+    '接口。请在“设置 → Codex 渠道”里核对地址：Base URL 填到 OpenAI 兼容接口根地址，' +
+    '例如 https://服务商域名/v1，不要带 /responses 或 /v1/messages 后缀。'
+  );
+}
+
+/**
  * Recursively redact sensitive fields (tokens, passwords, API keys, etc.)
  * from an object. Limits recursion depth to 3 levels.
  */

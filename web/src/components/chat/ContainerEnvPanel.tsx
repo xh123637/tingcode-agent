@@ -11,6 +11,9 @@ interface ContainerEnvPanelProps {
 }
 
 const SYSTEM_MANAGED_ENV_KEYS = new Set([
+  'OPENAI_MODEL',
+  'OPENAI_BASE_URL',
+  'OPENAI_API_KEY',
   'ANTHROPIC_MODEL',
   'ANTHROPIC_BASE_URL',
   'ANTHROPIC_AUTH_TOKEN',

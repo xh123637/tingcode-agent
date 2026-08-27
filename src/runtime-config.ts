@@ -78,6 +78,9 @@ const TELEGRAM_CONFIG_FILE = path.join(
 const ENV_KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const RESERVED_CLAUDE_ENV_KEYS = new Set([
   'CLAUDE_CODE_OAUTH_TOKEN',
+  'OPENAI_BASE_URL',
+  'OPENAI_API_KEY',
+  'OPENAI_MODEL',
   'ANTHROPIC_BASE_URL',
   'ANTHROPIC_AUTH_TOKEN',
   'ANTHROPIC_MODEL',
@@ -90,6 +93,9 @@ export const CLAUDE_ENDPOINT_KIND_ENV = 'TINYCODE_CLAUDE_ENDPOINT_KIND';
 const INHERITED_CLAUDE_PROVIDER_ENV_KEYS = [
   CLAUDE_ENDPOINT_KIND_ENV,
   'CLAUDE_CODE_OAUTH_TOKEN',
+  'OPENAI_BASE_URL',
+  'OPENAI_API_KEY',
+  'OPENAI_MODEL',
   'ANTHROPIC_BASE_URL',
   'ANTHROPIC_AUTH_TOKEN',
   'ANTHROPIC_API_KEY',
@@ -109,7 +115,7 @@ const INHERITED_CLAUDE_PROVIDER_ENV_KEYS = [
  * Remove provider-owned values inherited from the TinyCode parent process.
  * The selected provider is reapplied afterwards from buildContainerEnvLines().
  * Without this reset, switching to an official provider in host mode can retain
- * a previous ANTHROPIC_BASE_URL/model/token and silently use the wrong endpoint.
+ * a previous OPENAI_BASE_URL/model/token and silently use the wrong endpoint.
  */
 export function clearInheritedClaudeProviderEnv(
   env: Record<string, string | undefined>,
@@ -807,7 +813,8 @@ function readLegacyConfig(
       anthropicApiKey: raw.anthropicApiKey ?? '',
       claudeCodeOauthToken: raw.claudeCodeOauthToken ?? '',
       claudeOAuthCredentials: null,
-      anthropicModel: process.env.ANTHROPIC_MODEL || '',
+      anthropicModel:
+        process.env.OPENAI_MODEL || process.env.ANTHROPIC_MODEL || '',
     },
     typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
   );
@@ -868,7 +875,10 @@ function makeDefaultThirdPartyProfile(
     anthropicBaseUrl: config.anthropicBaseUrl,
     anthropicAuthToken: config.anthropicAuthToken,
     anthropicModel: normalizeModel(
-      config.anthropicModel || process.env.ANTHROPIC_MODEL || '',
+      config.anthropicModel ||
+        process.env.OPENAI_MODEL ||
+        process.env.ANTHROPIC_MODEL ||
+        '',
     ),
     updatedAt: config.updatedAt || new Date().toISOString(),
     customEnv: {},
@@ -981,7 +991,8 @@ function normalizeStoredState(
         anthropicApiKey: '',
         claudeCodeOauthToken: '',
         claudeOAuthCredentials: null,
-        anthropicModel: process.env.ANTHROPIC_MODEL || '',
+        anthropicModel:
+          process.env.OPENAI_MODEL || process.env.ANTHROPIC_MODEL || '',
         updatedAt: null,
       }),
     );
@@ -1053,7 +1064,8 @@ function readStoredState(): ClaudeStoredStateV3Resolved | null {
           anthropicApiKey: secrets.anthropicApiKey,
           claudeCodeOauthToken: secrets.claudeCodeOauthToken,
           claudeOAuthCredentials: secrets.claudeOAuthCredentials ?? null,
-          anthropicModel: process.env.ANTHROPIC_MODEL || '',
+          anthropicModel:
+            process.env.OPENAI_MODEL || process.env.ANTHROPIC_MODEL || '',
         },
         v2.updatedAt || null,
       );
@@ -1806,12 +1818,19 @@ function readStoredConfig(): ClaudeProviderConfig | null {
 
 function defaultsFromEnv(): ClaudeProviderConfig {
   const raw = {
-    anthropicBaseUrl: process.env.ANTHROPIC_BASE_URL || '',
-    anthropicAuthToken: process.env.ANTHROPIC_AUTH_TOKEN || '',
-    anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
+    anthropicBaseUrl:
+      process.env.OPENAI_BASE_URL || process.env.ANTHROPIC_BASE_URL || '',
+    anthropicAuthToken:
+      process.env.OPENAI_API_KEY ||
+      process.env.ANTHROPIC_AUTH_TOKEN ||
+      process.env.ANTHROPIC_API_KEY ||
+      '',
+    anthropicApiKey:
+      process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY || '',
     claudeCodeOauthToken: process.env.CLAUDE_CODE_OAUTH_TOKEN || '',
     claudeOAuthCredentials: null,
-    anthropicModel: process.env.ANTHROPIC_MODEL || '',
+    anthropicModel:
+      process.env.OPENAI_MODEL || process.env.ANTHROPIC_MODEL || '',
   };
 
   try {
@@ -2055,17 +2074,17 @@ export function validateClaudeProviderConfig(
   const errors: string[] = [];
 
   if (config.anthropicAuthToken && !config.anthropicBaseUrl) {
-    errors.push('使用 ANTHROPIC_AUTH_TOKEN 时必须配置 ANTHROPIC_BASE_URL');
+    errors.push('使用 API Key 时必须配置 OPENAI_BASE_URL');
   }
 
   if (config.anthropicBaseUrl) {
     try {
       const parsed = new URL(config.anthropicBaseUrl);
       if (!['http:', 'https:'].includes(parsed.protocol)) {
-        errors.push('ANTHROPIC_BASE_URL 必须是 http 或 https 地址');
+        errors.push('OPENAI_BASE_URL 必须是 http 或 https 地址');
       }
     } catch {
-      errors.push('ANTHROPIC_BASE_URL 格式不正确');
+      errors.push('OPENAI_BASE_URL 格式不正确');
     }
   }
 
@@ -2553,40 +2572,40 @@ export function buildClaudeEnvLines(
     );
   }
   if (config.anthropicApiKey) {
+    lines.push(`OPENAI_API_KEY=${sanitizeEnvValue(config.anthropicApiKey)}`);
     lines.push(`ANTHROPIC_API_KEY=${sanitizeEnvValue(config.anthropicApiKey)}`);
   }
   if (config.anthropicBaseUrl) {
+    lines.push(
+      `OPENAI_BASE_URL=${sanitizeEnvValue(config.anthropicBaseUrl)}`,
+    );
     lines.push(
       `ANTHROPIC_BASE_URL=${sanitizeEnvValue(config.anthropicBaseUrl)}`,
     );
   }
   if (config.anthropicAuthToken) {
     const bearerMatch = /^Bearer\s+(.+)$/i.exec(config.anthropicAuthToken);
-    if (config.anthropicBaseUrl && !bearerMatch) {
-      // Most third-party Anthropic-compatible endpoints expect API-key style
-      // auth (the SDK sends a bare token as `X-Api-Key`). A plain token maps to
-      // ANTHROPIC_API_KEY so non-Anthropic endpoints don't 404 on the OAuth path.
-      lines.push(
-        `ANTHROPIC_API_KEY=${sanitizeEnvValue(config.anthropicAuthToken)}`,
-      );
-    } else {
-      // An explicit `Bearer <token>` (or first-party usage) goes to
-      // ANTHROPIC_AUTH_TOKEN so the SDK emits `Authorization: Bearer <token>`.
-      // The SDK adds the `Bearer ` prefix itself, so strip the user-supplied
-      // one to avoid a doubled `Authorization: Bearer Bearer <token>`.
-      const token = bearerMatch ? bearerMatch[1] : config.anthropicAuthToken;
+    // OpenAI 兼容端点统一使用 `Authorization: Bearer <key>`，所以显式
+    // `Bearer ` 前缀由运行时补上，这里只保留纯 token。ANTHROPIC_* 别名继续
+    // 输出，兼容旧镜像与旧环境。
+    const token = bearerMatch ? bearerMatch[1] : config.anthropicAuthToken;
+    lines.push(`OPENAI_API_KEY=${sanitizeEnvValue(token)}`);
+    if (bearerMatch || !config.anthropicBaseUrl) {
       lines.push(`ANTHROPIC_AUTH_TOKEN=${sanitizeEnvValue(token)}`);
+    } else {
+      lines.push(`ANTHROPIC_API_KEY=${sanitizeEnvValue(token)}`);
     }
   }
   if (config.anthropicModel) {
+    lines.push(`OPENAI_MODEL=${sanitizeEnvValue(config.anthropicModel)}`);
     lines.push(`ANTHROPIC_MODEL=${sanitizeEnvValue(config.anthropicModel)}`);
   }
 
   // Use explicit profileCustomEnv if provided (pool mode), otherwise active profile.
   const customEnv = profileCustomEnv ?? getActiveProfileCustomEnv();
 
-  // Anthropic-compatible third-party endpoints need a predictable Claude Code
-  // runtime. Prefill the implementation-level environment from the model and
+  // Codex/OpenAI-compatible third-party endpoints need a predictable runtime.
+  // Prefill the implementation-level environment from the model and
   // [1m] suffix, while allowing provider-level advanced settings to replace
   // any default explicitly.
   if (config.anthropicBaseUrl) {

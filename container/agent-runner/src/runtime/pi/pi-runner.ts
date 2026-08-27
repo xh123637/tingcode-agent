@@ -131,6 +131,7 @@ function toStreamEvent(
         agentScope: 'main',
         displayLevel: 'detail',
         usage: {
+          eventId: event.usage.eventId,
           inputTokens: event.usage.inputTokens,
           outputTokens: event.usage.outputTokens,
           cacheReadInputTokens: event.usage.cacheReadInputTokens ?? 0,
@@ -139,6 +140,25 @@ function toStreamEvent(
           costUSD: event.usage.costUSD ?? 0,
           durationMs: event.usage.durationMs ?? 0,
           numTurns: event.usage.numTurns ?? 0,
+          modelUsage: event.usage.modelUsage
+            ? Object.fromEntries(
+                Object.entries(event.usage.modelUsage).map(
+                  ([model, value]) => [
+                    model,
+                    {
+                      inputTokens: value.inputTokens,
+                      outputTokens: value.outputTokens,
+                      cacheReadInputTokens:
+                        value.cacheReadInputTokens ?? 0,
+                      cacheCreationInputTokens:
+                        value.cacheCreationInputTokens ?? 0,
+                      reasoningTokens: value.reasoningTokens ?? 0,
+                      costUSD: value.costUSD ?? 0,
+                    },
+                  ],
+                ),
+              )
+            : undefined,
         },
         sessionId: event.sessionId,
       };
@@ -259,6 +279,19 @@ export async function runPiQueryAttempt(
       ...(receipts.length > 0 ? { ipcReceipts: receipts } : {}),
       ...(result.error ? { error: result.error } : {}),
     });
+    const usageEvent = result.usage
+      ? toStreamEvent(
+          { type: 'usage', sessionId: result.sessionId, usage: result.usage },
+          options.containerInput,
+        )
+      : undefined;
+    if (usageEvent) {
+      options.emit({
+        status: 'stream',
+        result: null,
+        streamEvent: usageEvent,
+      });
+    }
     if (inputTurnCompleted) {
       options.onTurnCompleted();
       if (options.tracker.hasPendingTurns) {

@@ -19,6 +19,8 @@ export type RuntimeInput = {
 };
 
 export type RuntimeUsage = {
+  /** Stable logical run ID used to make analytics and billing idempotent. */
+  eventId?: string;
   inputTokens: number;
   outputTokens: number;
   reasoningTokens?: number;
@@ -27,6 +29,17 @@ export type RuntimeUsage = {
   costUSD?: number;
   durationMs?: number;
   numTurns?: number;
+  modelUsage?: Record<
+    string,
+    {
+      inputTokens: number;
+      outputTokens: number;
+      cacheReadInputTokens?: number;
+      cacheCreationInputTokens?: number;
+      reasoningTokens?: number;
+      costUSD?: number;
+    }
+  >;
 };
 
 export type RuntimeResult = {

@@ -160,7 +160,7 @@ const WORKSPACE_IPC =
   process.env.TINYCODE_WORKSPACE_IPC ||
   '/workspace/ipc';
 
-// 第三方端点必须显式配置模型，官方 Claude 则允许 SDK/CLI 选择默认模型。
+// 第三方端点必须显式配置模型，内置 OpenAI 端点则允许选择默认模型。
 // host/docker runner 会注入权威端点类型；旧运行环境仍可由 base URL 兼容推断。
 const CLAUDE_PROVIDER_RUNTIME = resolveClaudeProviderRuntime(process.env);
 const AGENT_RUNTIME = resolveAgentRuntimeKind(process.env);
@@ -2533,9 +2533,12 @@ async function runQueryAttempt(
         skillPaths: piSkillPaths,
         provider: {
           endpointKind: CLAUDE_PROVIDER_RUNTIME.endpointKind,
-          baseUrl: process.env.ANTHROPIC_BASE_URL,
+          baseUrl:
+            process.env.OPENAI_BASE_URL || process.env.ANTHROPIC_BASE_URL,
           apiKey:
-            process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN,
+            process.env.OPENAI_API_KEY ||
+            process.env.ANTHROPIC_API_KEY ||
+            process.env.ANTHROPIC_AUTH_TOKEN,
         },
       },
       prompt,
@@ -3948,14 +3951,14 @@ async function main(): Promise<void> {
     containerInput.channelContext,
   );
 
-  // 第三方端点没有通用的官方默认模型，缺失时必须 fail-fast；官方
-  // Claude 未指定模型则交给 SDK/CLI 选择默认模型。
+  // 自定义 Codex/OpenAI 端点没有通用默认模型，缺失时必须 fail-fast；
+  // 内置端点则交给运行时选择默认模型。
   if (CLAUDE_PROVIDER_RUNTIME.missingRequiredModel) {
     writeOutput({
       status: 'error',
       result: null,
       error:
-        '未配置模型：当前第三方 provider 缺少模型名（ANTHROPIC_MODEL 未注入）。请在 Claude 供应商设置中为该 provider 填写模型名（anthropicModel）后重试。',
+        '未配置模型：当前 Codex 渠道缺少模型名（OPENAI_MODEL 未注入）。请在“设置 → Codex 渠道”中填写模型名后重试。',
     });
     process.exit(1);
   }

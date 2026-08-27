@@ -1,8 +1,34 @@
 import { describe, expect, test } from 'vitest';
 import {
+  formatProviderEndpointError,
   redactInlineSecrets,
   summarizeToolInput,
 } from '../container/agent-runner/src/utils.js';
+
+describe('formatProviderEndpointError', () => {
+  test('rewrites HTML 404 responses from third-party relays', () => {
+    const raw =
+      '404 Page Not Found: The requested URL was not found on this server. ' +
+      '<!doctype html><html><body>Not Found</body></html>';
+    expect(formatProviderEndpointError(raw)).toContain('第三方接口地址无效');
+    expect(formatProviderEndpointError(raw)).toMatch(
+      /不要带 \/responses 或 \/v1\/messages 后缀/,
+    );
+  });
+
+  test('rewrites SDK errors that mention a bad base URL plus 404', () => {
+    const raw =
+      'Request failed with status 404. Check the baseURL setting: ' +
+      'https://service.example/api/v1/v1/messages not found.';
+    expect(formatProviderEndpointError(raw)).toContain('第三方接口地址无效');
+  });
+
+  test('leaves unrelated 404 messages untouched', () => {
+    expect(formatProviderEndpointError('file 404: missing config')).toBe(
+      'file 404: missing config',
+    );
+  });
+});
 
 describe('redactInlineSecrets', () => {
   describe('OAuth bearer tokens', () => {

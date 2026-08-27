@@ -53,7 +53,7 @@ const systemItems: NavItem[] = [
   },
   {
     key: 'claude',
-    label: '模型配置',
+    label: 'Codex/模型',
     icon: <ShieldCheck className="size-4" />,
   },
   {

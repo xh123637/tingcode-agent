@@ -38,23 +38,18 @@ TinyCode 采用智能体优先工作模型和本地优先、显式集成的思�
 下面是当前桌面端工作台的实际界面：
 
 <p align="center">
-  <img src="docs/screenshots/workbench.png" alt="TinyCode 智能体工作台" width="900" />
+  <img src="docs/screenshots/img.png" alt="TinyCode 智能体工作台" width="900" />
 </p>
 
-<p align="center">
+<p>
   <em>工作台：在同一个窗口中管理 Agent、Workspace、Session 与对话。</em>
 </p>
 
-<p align="center">
-  <img src="docs/screenshots/capabilities.png" alt="TinyCode 能力库" width="49%" />
-  <img src="docs/screenshots/settings-models.png" alt="TinyCode 模型配置" width="49%" />
-</p>
-
-<p align="center">
+<p>
   <em>能力库与模型配置：把 Skills、MCP、Plugins 和 Provider 配置放在清晰的管理边界内。</em>
 </p>
 
-新的 TinyCode 图标同时用于 Web/PWA、Electron 窗口和安装包资源：
+TinyCode 图标同时用于 Web/PWA、Electron 窗口和安装包资源：
 
 <p align="center">
   <img src="web/public/icons/logo-1024.png" alt="TinyCode application icon" width="160" />

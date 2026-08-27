@@ -11,6 +11,9 @@ import type {
   RuntimeSession,
 } from '../types.js';
 import { PiSubAgentAdapter } from './pi-subagents.js';
+import { formatProviderEndpointError } from '../../utils.js';
+
+const ABORT_WAIT_TIMEOUT_MS = 8_000;
 
 function textFromMessage(message: unknown): string {
   if (!message || typeof message !== 'object') return '';
@@ -28,24 +31,62 @@ function textFromMessage(message: unknown): string {
     .join('');
 }
 
-function usageFromMessage(message: unknown) {
-  const usage = (message as { usage?: Record<string, unknown> } | undefined)
-    ?.usage;
+export function piUsageFromMessage(message: unknown) {
+  const record = (message ?? {}) as Record<string, unknown>;
+  const usage = record.usage as Record<string, unknown> | undefined;
   if (!usage) return undefined;
+  const inputTokens = Number(usage.input ?? 0);
+  const outputTokens = Number(usage.output ?? 0);
+  const reasoningTokens =
+    typeof usage.reasoning === 'number' ? usage.reasoning : undefined;
+  const cacheReadInputTokens =
+    typeof usage.cacheRead === 'number' ? usage.cacheRead : undefined;
+  const cacheCreationInputTokens =
+    typeof usage.cacheWrite === 'number' ? usage.cacheWrite : undefined;
+  const costUSD =
+    typeof (usage.cost as { total?: unknown } | undefined)?.total === 'number'
+      ? (usage.cost as { total: number }).total
+      : undefined;
+  const model =
+    typeof record.responseModel === 'string' && record.responseModel.trim()
+      ? record.responseModel.trim()
+      : typeof record.model === 'string' && record.model.trim()
+        ? record.model.trim()
+        : undefined;
   return {
-    inputTokens: Number(usage.input ?? 0),
-    outputTokens: Number(usage.output ?? 0),
-    reasoningTokens:
-      typeof usage.reasoning === 'number' ? usage.reasoning : undefined,
-    cacheReadInputTokens:
-      typeof usage.cacheRead === 'number' ? usage.cacheRead : undefined,
-    cacheCreationInputTokens:
-      typeof usage.cacheWrite === 'number' ? usage.cacheWrite : undefined,
-    costUSD:
-      typeof (usage.cost as { total?: unknown } | undefined)?.total === 'number'
-        ? (usage.cost as { total: number }).total
-        : undefined,
+    inputTokens,
+    outputTokens,
+    reasoningTokens,
+    cacheReadInputTokens,
+    cacheCreationInputTokens,
+    costUSD,
+    ...(model
+      ? {
+          modelUsage: {
+            [model]: {
+              inputTokens,
+              outputTokens,
+              cacheReadInputTokens,
+              cacheCreationInputTokens,
+              reasoningTokens,
+              costUSD,
+            },
+          },
+        }
+      : {}),
   };
+}
+
+export function piUsageEventId(message: unknown, sessionId: string): string {
+  const record = (message ?? {}) as Record<string, unknown>;
+  const responseId =
+    typeof record.responseId === 'string' && record.responseId.trim()
+      ? record.responseId.trim()
+      : undefined;
+  if (responseId) return `pi-result:${responseId}`;
+  const timestamp =
+    typeof record.timestamp === 'number' ? record.timestamp : Date.now();
+  return `pi-result:${sessionId}:${timestamp}`;
 }
 
 function mapPiEvent(
@@ -119,7 +160,10 @@ function mapPiEvent(
         type: 'compaction_end',
         sessionId,
         reason: event.reason,
-        error: event.errorMessage,
+        error:
+          typeof event.errorMessage === 'string'
+            ? formatProviderEndpointError(event.errorMessage)
+            : event.errorMessage,
       };
     case 'queue_update':
       return {
@@ -132,8 +176,13 @@ function mapPiEvent(
         .reverse()
         .find((message) => message.role === 'assistant');
       if (!assistant) return undefined;
+      const usage = piUsageFromMessage(assistant);
       const error =
-        'errorMessage' in assistant ? assistant.errorMessage : undefined;
+        'errorMessage' in assistant
+          ? typeof assistant.errorMessage === 'string'
+            ? formatProviderEndpointError(assistant.errorMessage)
+            : assistant.errorMessage
+          : undefined;
       const result: RuntimeResult = {
         text: textFromMessage(assistant),
         sessionId,
@@ -144,7 +193,12 @@ function mapPiEvent(
               ? 'error'
               : 'completed',
         stopReason: assistant.stopReason,
-        usage: usageFromMessage(assistant),
+        usage: usage
+          ? {
+              ...usage,
+              eventId: piUsageEventId(assistant, sessionId),
+            }
+          : undefined,
         ...(error ? { error } : {}),
       };
       return { type: 'result', sessionId, result };
@@ -215,7 +269,13 @@ export class PiRuntimeSession implements RuntimeSession {
   }
 
   async abort(): Promise<void> {
-    await this.session.abort();
+    // Pi waits for the agent loop to become idle; a stuck third-party HTTP
+    // request can make that wait unbounded, so bound it and let the caller
+    // dispose the session instead of hanging the stop flow.
+    await Promise.race([
+      this.session.abort().catch(() => undefined),
+      new Promise((resolve) => setTimeout(resolve, ABORT_WAIT_TIMEOUT_MS)),
+    ]);
   }
 
   async compact(instructions?: string): Promise<void> {

@@ -38,6 +38,27 @@ describe('agent-runner provider model contract', () => {
       queryModelOptions: { model: 'glm-5.2' },
       usageModelKey: 'glm-5.2',
     },
+    {
+      name: 'custom endpoint prefers OPENAI_MODEL',
+      env: {
+        TINYCODE_CLAUDE_ENDPOINT_KIND: 'custom',
+        OPENAI_MODEL: 'gpt-5.4-codex',
+        ANTHROPIC_MODEL: 'ignored',
+      },
+      missingRequiredModel: false,
+      queryModelOptions: { model: 'gpt-5.4-codex' },
+      usageModelKey: 'gpt-5.4-codex',
+    },
+    {
+      name: 'detects a custom endpoint from OPENAI_BASE_URL',
+      env: {
+        OPENAI_BASE_URL: 'https://relay.test/v1',
+        OPENAI_MODEL: 'gpt-4.1',
+      },
+      missingRequiredModel: false,
+      queryModelOptions: { model: 'gpt-4.1' },
+      usageModelKey: 'gpt-4.1',
+    },
   ])(
     '$name',
     ({ env, missingRequiredModel, queryModelOptions, usageModelKey }) => {

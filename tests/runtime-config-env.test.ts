@@ -33,6 +33,7 @@ describe('buildClaudeEnvLines', () => {
       NO_CUSTOM_ENV,
     );
 
+    expect(lines).toContain('OPENAI_API_KEY=plain-token');
     expect(lines).toContain('ANTHROPIC_API_KEY=plain-token');
     expect(lines).not.toContain('ANTHROPIC_AUTH_TOKEN=plain-token');
   });
@@ -45,6 +46,7 @@ describe('buildClaudeEnvLines', () => {
 
     // The SDK emits `Authorization: Bearer <value>` itself, so the stored value
     // must be the bare token — otherwise the header becomes `Bearer Bearer …`.
+    expect(lines).toContain('OPENAI_API_KEY=upstream-token');
     expect(lines).toContain('ANTHROPIC_AUTH_TOKEN=upstream-token');
     expect(lines).not.toContain('ANTHROPIC_AUTH_TOKEN=Bearer upstream-token');
     expect(lines).not.toContain('ANTHROPIC_API_KEY=upstream-token');
@@ -64,6 +66,7 @@ describe('buildClaudeEnvLines', () => {
       NO_CUSTOM_ENV,
     );
 
+    expect(lines).toContain('OPENAI_MODEL=glm-5.2[1m]');
     expect(lines).toContain('ANTHROPIC_MODEL=glm-5.2[1m]');
     expect(lines).toContain('ANTHROPIC_DEFAULT_OPUS_MODEL=glm-5.2[1m]');
     expect(lines).toContain('ANTHROPIC_DEFAULT_SONNET_MODEL=glm-5.2[1m]');

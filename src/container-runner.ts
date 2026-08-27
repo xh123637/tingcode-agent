@@ -2577,8 +2577,10 @@ export async function runHostAgent(
       input.agentProfile?.runtimePolicy,
     );
     removeProviderEffortEnv(envLines, agentEffort);
-    const injectsAnthropicAuthToken = envLines.some((line) =>
-      line.startsWith('ANTHROPIC_AUTH_TOKEN='),
+    const injectsProviderApiKey = envLines.some(
+      (line) =>
+        line.startsWith('OPENAI_API_KEY=') ||
+        line.startsWith('ANTHROPIC_API_KEY='),
     );
     for (const line of envLines) {
       const eqIdx = line.indexOf('=');
@@ -2593,11 +2595,12 @@ export async function runHostAgent(
       delete hostEnv['TINYCODE_FALLBACK_MODEL'];
     }
 
-    // Third-party provider: unless this provider explicitly injects
-    // ANTHROPIC_AUTH_TOKEN (Bearer proxy mode), remove any inherited host token
-    // so API-key mode can take effect.
-    if (hostEnv['ANTHROPIC_BASE_URL']) {
-      if (!injectsAnthropicAuthToken) {
+    // Third-party Codex provider: unless this provider explicitly injects an
+    // API key, remove any inherited host token so the form value takes effect.
+    if (hostEnv['OPENAI_BASE_URL'] || hostEnv['ANTHROPIC_BASE_URL']) {
+      if (!injectsProviderApiKey) {
+        delete hostEnv['OPENAI_API_KEY'];
+        delete hostEnv['ANTHROPIC_API_KEY'];
         delete hostEnv['ANTHROPIC_AUTH_TOKEN'];
       }
 

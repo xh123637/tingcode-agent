@@ -198,7 +198,7 @@ export function LoginPage() {
               </h1>
 
               <p className="mt-4 lg:mt-6 text-sm sm:text-base lg:text-lg text-muted-foreground leading-relaxed max-w-lg mx-auto lg:mx-0">
-                自托管、多用户、多渠道 —— 让 Claude 成为你的全能数字助手。
+                自托管、多用户、多渠道，用 TinyCode 运行你的 Codex 智能体。
                 在安全隔离的环境中，自主执行代码、管理文件、调度任务。
               </p>
 

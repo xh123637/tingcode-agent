@@ -11175,7 +11175,15 @@ function startIpcWatcher(): void {
             ) {
               throw new Error('Failed to acknowledge IPC delivery result');
             }
-            await fsp.unlink(filePath);
+            try {
+              await fsp.unlink(filePath);
+            } catch (unlinkErr: any) {
+              if (unlinkErr?.code !== 'ENOENT') throw unlinkErr;
+              logger.debug(
+                { file, sourceGroup },
+                'IPC message already handled by another watcher',
+              );
+            }
           } catch (err) {
             if (!messageResultWritten) {
               writeIpcMessageResult(messageResultsDir, messageRequestId, {
@@ -11194,11 +11202,18 @@ function startIpcWatcher(): void {
                 filePath,
                 path.join(errorDir, `${sourceGroup}-${file}`),
               );
-            } catch (renameErr) {
-              logger.error(
-                { file, sourceGroup, renameErr },
-                'Failed to move IPC message to error directory; retaining source for retry',
-              );
+            } catch (renameErr: any) {
+              if (renameErr?.code === 'ENOENT') {
+                logger.debug(
+                  { file, sourceGroup },
+                  'IPC message already handled by another watcher',
+                );
+              } else {
+                logger.error(
+                  { file, sourceGroup, renameErr },
+                  'Failed to move IPC message to error directory; retaining source for retry',
+                );
+              }
             }
           }
         }
@@ -11297,7 +11312,15 @@ function startIpcWatcher(): void {
               ipcAgentId,
               ipcTaskId,
             );
-            await fsp.unlink(filePath);
+            try {
+              await fsp.unlink(filePath);
+            } catch (unlinkErr: any) {
+              if (unlinkErr?.code !== 'ENOENT') throw unlinkErr;
+              logger.debug(
+                { file, sourceGroup },
+                'IPC task already handled by another watcher',
+              );
+            }
           } catch (err) {
             logger.error(
               { file, sourceGroup, err },
@@ -11322,15 +11345,22 @@ function startIpcWatcher(): void {
                 filePath,
                 path.join(errorDir, `${sourceGroup}-${file}`),
               );
-            } catch (renameErr) {
-              logger.error(
-                { file, sourceGroup, renameErr },
-                'Failed to move IPC task to error directory, deleting',
-              );
-              try {
-                await fsp.unlink(filePath);
-              } catch {
-                /* ignore */
+            } catch (renameErr: any) {
+              if (renameErr?.code === 'ENOENT') {
+                logger.debug(
+                  { file, sourceGroup },
+                  'IPC task already handled by another watcher',
+                );
+              } else {
+                logger.error(
+                  { file, sourceGroup, renameErr },
+                  'Failed to move IPC task to error directory, deleting',
+                );
+                try {
+                  await fsp.unlink(filePath);
+                } catch {
+                  /* ignore */
+                }
               }
             }
           }
@@ -19661,6 +19691,89 @@ function movePathWithFallback(src: string, dst: string): void {
   }
 }
 
+const INSTANCE_LOCK_FILE = path.join(DATA_DIR, '.tinycode.lock');
+let instanceLockFd: number | null = null;
+
+function isProcessAlive(pid: number): boolean {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err: unknown) {
+    return (err as NodeJS.ErrnoException).code !== 'ESRCH';
+  }
+}
+
+/**
+ * Prevents two backend instances from sharing one data directory. They would
+ * otherwise race on the same IPC inbox and delete each other's tasks/files.
+ */
+function acquireSingleInstanceLock(): void {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      instanceLockFd = fs.openSync(INSTANCE_LOCK_FILE, 'wx');
+      fs.writeFileSync(
+        instanceLockFd,
+        JSON.stringify({
+          pid: process.pid,
+          cwd: process.cwd(),
+          startedAt: new Date().toISOString(),
+        }),
+      );
+      return;
+    } catch (err: unknown) {
+      if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
+
+      let ownerPid: number | null = null;
+      try {
+        const existing = JSON.parse(
+          fs.readFileSync(INSTANCE_LOCK_FILE, 'utf8'),
+        ) as { pid?: unknown };
+        ownerPid =
+          typeof existing.pid === 'number' ? existing.pid : Number(existing.pid);
+      } catch {
+        // Corrupt/partial lock is stale; treat it as removable below.
+      }
+
+      if (ownerPid !== null && Number.isInteger(ownerPid) && isProcessAlive(ownerPid)) {
+        logger.error(
+          { ownerPid, lockFile: INSTANCE_LOCK_FILE },
+          'Another tinycode instance is already using this data directory; stop it or use a separate data directory',
+        );
+        process.exit(1);
+      }
+
+      try {
+        fs.unlinkSync(INSTANCE_LOCK_FILE);
+      } catch (unlinkErr: unknown) {
+        if ((unlinkErr as NodeJS.ErrnoException).code !== 'ENOENT') throw unlinkErr;
+      }
+    }
+  }
+  logger.error(
+    { lockFile: INSTANCE_LOCK_FILE },
+    'Could not acquire tinycode single-instance lock',
+  );
+  process.exit(1);
+}
+
+function releaseSingleInstanceLock(): void {
+  if (instanceLockFd !== null) {
+    try {
+      fs.closeSync(instanceLockFd);
+    } catch {
+      // Already closed.
+    }
+    instanceLockFd = null;
+  }
+  try {
+    fs.unlinkSync(INSTANCE_LOCK_FILE);
+  } catch {
+    // Absent or already removed; nothing to release.
+  }
+}
+
 /**
  * One-shot migration: move legacy top-level directories into data/.
  * - store/messages.db* → data/db/messages.db*
@@ -19722,6 +19835,9 @@ function migrateDataDirectories(): void {
 }
 
 async function main(): Promise<void> {
+  acquireSingleInstanceLock();
+  process.on('exit', () => releaseSingleInstanceLock());
+
   migrateDataDirectories();
   initDatabase();
   logger.info('Database initialized');
