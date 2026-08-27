@@ -1,0 +1,10 @@
+{
+  "name": "tinycode-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Electron Desktop Shell for TinyCode",
+  "main": "dist/main.cjs",
+  "author": "TinyCode",
+  "license": "MIT",
+  "homepage": "https://github.com/tinycode/tinycode#readme"
+}

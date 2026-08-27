@@ -1,0 +1,68 @@
+<svg width="3000" height="1000" viewBox="0 0 3000 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @keyframes wave {
+      0%, 100% { transform: translateY(0); }
+      25% { transform: translateY(-30px); }
+      50% { transform: translateY(0); }
+    }
+    .letter-0 { animation: wave 1.8s ease-in-out infinite; animation-delay: 0s; }
+    .letter-1 { animation: wave 1.8s ease-in-out infinite; animation-delay: 0.12s; }
+    .letter-2 { animation: wave 1.8s ease-in-out infinite; animation-delay: 0.24s; }
+    .letter-3 { animation: wave 1.8s ease-in-out infinite; animation-delay: 0.36s; }
+    .letter-4 { animation: wave 1.8s ease-in-out infinite; animation-delay: 0.48s; }
+    .letter-5 { animation: wave 1.8s ease-in-out infinite; animation-delay: 0.60s; }
+    .letter-6 { animation: wave 1.8s ease-in-out infinite; animation-delay: 0.72s; }
+    .letter-7 { animation: wave 1.8s ease-in-out infinite; animation-delay: 0.84s; }
+    .icon-bob { animation: wave 1.8s ease-in-out infinite; animation-delay: 0.06s; }
+  </style>
+
+  <defs>
+    <linearGradient id="icnInk" x1="190" y1="150" x2="810" y2="850" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1E293B"/>
+      <stop offset="1" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="icnAmber" x1="330" y1="340" x2="690" y2="690" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBBF24"/>
+      <stop offset="1" stop-color="#D97706"/>
+    </linearGradient>
+    <radialGradient id="icnGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop stop-color="#22D3EE" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <g class="icon-bob">
+    <rect x="100" y="100" width="800" height="800" rx="145" fill="url(#icnInk)"/>
+    <rect x="143" y="143" width="714" height="714" rx="111" stroke="#FBBF24" stroke-opacity="0.16" stroke-width="14"/>
+    <circle cx="662" cy="272" r="30" fill="#2DD4BF"/>
+    <circle cx="662" cy="272" r="88" fill="#22D3EE" fill-opacity="0.10"/>
+    <g stroke="url(#icnAmber)" stroke-width="40" stroke-linecap="square">
+      <path d="M262 348V652"/>
+      <path d="M322 348V652"/>
+      <path d="M678 348V652"/>
+      <path d="M738 348V652"/>
+    </g>
+    <g fill="url(#icnAmber)">
+      <rect x="258" y="308" width="68" height="26" rx="9"/>
+      <rect x="258" y="666" width="68" height="26" rx="9"/>
+      <rect x="674" y="308" width="68" height="26" rx="9"/>
+      <rect x="674" y="666" width="68" height="26" rx="9"/>
+    </g>
+    <path d="M476 348H520L448 500H520L448 652" stroke="url(#icnAmber)" stroke-width="70" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M588 500H624L584 652H548L588 500Z" fill="#F8FAFC" fill-opacity="0.78"/>
+  </g>
+
+  <g>
+    <g class="letter-0"><text x="1030" y="420" fill="#0F172A" font-family="Inter, -apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, sans-serif" font-size="250" font-weight="750" letter-spacing="0">T</text></g>
+    <g class="letter-1"><text x="1240" y="420" fill="#0F172A" font-family="Inter, -apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, sans-serif" font-size="250" font-weight="750" letter-spacing="0">i</text></g>
+    <g class="letter-2"><text x="1360" y="420" fill="#0F172A" font-family="Inter, -apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, sans-serif" font-size="250" font-weight="750" letter-spacing="0">n</text></g>
+    <g class="letter-3"><text x="1580" y="420" fill="#0F172A" font-family="Inter, -apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, sans-serif" font-size="250" font-weight="750" letter-spacing="0">y</text></g>
+  </g>
+  <path d="M1030 470H1690" stroke="#F59E0B" stroke-width="18" stroke-linecap="round"/>
+  <g>
+    <g class="letter-4"><text x="1030" y="790" fill="#F59E0B" font-family="Inter, -apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, sans-serif" font-size="250" font-weight="750" letter-spacing="0">C</text></g>
+    <g class="letter-5"><text x="1230" y="790" fill="#F59E0B" font-family="Inter, -apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, sans-serif" font-size="250" font-weight="750" letter-spacing="0">o</text></g>
+    <g class="letter-6"><text x="1370" y="790" fill="#F59E0B" font-family="Inter, -apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, sans-serif" font-size="250" font-weight="750" letter-spacing="0">d</text></g>
+    <g class="letter-7"><text x="1540" y="790" fill="#F59E0B" font-family="Inter, -apple-system, BlinkMacSystemFont, &apos;Segoe UI&apos;, sans-serif" font-size="250" font-weight="750" letter-spacing="0">e</text></g>
+  </g>
+</svg>

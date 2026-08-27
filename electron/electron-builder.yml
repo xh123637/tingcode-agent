@@ -1,0 +1,35 @@
+appId: cc.tinycode.desktop
+productName: TinyCode
+copyright: Copyright © 2026 TinyCode contributors
+electronVersion: 39.8.10
+icon: assets/tinycode-icon.png
+
+directories:
+  output: release
+
+files:
+  - dist/**/*
+  - assets/**/*
+  - package.json
+  - '!**/*.map'
+
+extraMetadata:
+  main: dist/main.cjs
+
+asar: true
+
+mac:
+  category: public.app-category.productivity
+  icon: assets/tinycode.icns
+  target:
+    - dmg
+    - zip
+
+win:
+  target:
+    - nsis
+
+linux:
+  category: Utility
+  target:
+    - AppImage

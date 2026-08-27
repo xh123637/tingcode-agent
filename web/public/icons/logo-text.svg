@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="380" height="72" viewBox="0 0 380 72" role="img" aria-labelledby="title desc">
+  <title id="title">TinyCode</title>
+  <desc id="desc">TinyCode application logo</desc>
+  <defs>
+    <linearGradient id="amber" x1="10" y1="8" x2="64" y2="66" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBBF24"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="64" height="64" rx="15" fill="#0F172A"/>
+  <rect x="9" y="9" width="54" height="54" rx="11" fill="none" stroke="url(#amber)" stroke-opacity="0.22" stroke-width="2"/>
+  <g stroke="url(#amber)" stroke-width="4" stroke-linecap="square">
+    <path d="M19 24V48"/>
+    <path d="M24 24V48"/>
+    <path d="M48 24V48"/>
+    <path d="M53 24V48"/>
+  </g>
+  <path
+    d="M31.5 22H36L30.5 36H36L30.5 50"
+    stroke="url(#amber)"
+    stroke-width="7.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <path d="M42.5 37.5H47L42.5 50H38L42.5 37.5Z" fill="#F8FAFC" fill-opacity="0.78"/>
+  <text
+    x="84"
+    y="48"
+    fill="#0F172A"
+    font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="36"
+    font-weight="750"
+    letter-spacing="0"
+  >TinyCode</text>
+  <text
+    x="84"
+    y="67"
+    fill="#F59E0B"
+    font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="10"
+    font-weight="600"
+    letter-spacing="0"
+  >SELF-HOSTED AGENT WORKSPACE</text>
+</svg>
