@@ -140,7 +140,7 @@ describe('settings information architecture', () => {
     expect(provider).toContain('恢复默认值');
     expect(providerModel).toContain('CLAUDE_CODE_AUTO_COMPACT_WINDOW');
     expect(provider).toContain('1M 上下文');
-    expect(provider).toContain('系统预填 Claude Code 运行环境');
+    expect(provider).toContain('系统预填 Codex/OpenAI 运行环境');
     expect(providerList).toContain('设为默认');
     expect(providerList).toContain('系统默认');
     expect(providerList).not.toContain('权重');
@@ -148,16 +148,12 @@ describe('settings information architecture', () => {
     expect(settings).toContain('toast.error(message)');
   });
 
-  test('offers supported official model aliases', () => {
+  test('supports free-form model entry for Codex/OpenAI providers', () => {
     const provider = read('web/src/components/settings/ProviderEditor.tsx');
-    const officialModels = provider.slice(
-      provider.indexOf('/* ─── 官方模型选择 ─── */'),
-      provider.indexOf('/* ─── 环境变量 ─── */'),
-    );
 
-    expect(officialModels).toMatch(
-      /value="">default（默认）[\s\S]*value="opus">opus[\s\S]*value="sonnet">sonnet[\s\S]*value="haiku">haiku[\s\S]*value="fable">fable/,
-    );
+    expect(provider).toContain('OPENAI_MODEL');
+    expect(provider).toContain('系统预填 Codex/OpenAI 运行环境');
+    expect(provider).toMatch(/placeholder="例如 gpt-5\.4-codex、gpt-4\.1"/);
   });
 
   test('keeps Agent add-ons, project context, and Provider settings in distinct layers', () => {
