@@ -142,21 +142,18 @@ function toStreamEvent(
           numTurns: event.usage.numTurns ?? 0,
           modelUsage: event.usage.modelUsage
             ? Object.fromEntries(
-                Object.entries(event.usage.modelUsage).map(
-                  ([model, value]) => [
-                    model,
-                    {
-                      inputTokens: value.inputTokens,
-                      outputTokens: value.outputTokens,
-                      cacheReadInputTokens:
-                        value.cacheReadInputTokens ?? 0,
-                      cacheCreationInputTokens:
-                        value.cacheCreationInputTokens ?? 0,
-                      reasoningTokens: value.reasoningTokens ?? 0,
-                      costUSD: value.costUSD ?? 0,
-                    },
-                  ],
-                ),
+                Object.entries(event.usage.modelUsage).map(([model, value]) => [
+                  model,
+                  {
+                    inputTokens: value.inputTokens,
+                    outputTokens: value.outputTokens,
+                    cacheReadInputTokens: value.cacheReadInputTokens ?? 0,
+                    cacheCreationInputTokens:
+                      value.cacheCreationInputTokens ?? 0,
+                    reasoningTokens: value.reasoningTokens ?? 0,
+                    costUSD: value.costUSD ?? 0,
+                  },
+                ]),
               )
             : undefined,
         },
@@ -268,17 +265,11 @@ export async function runPiQueryAttempt(
     completionPublished = true;
     const receipts = options.tracker.completeNextTurn();
     const inputTurnCompleted = result.finalizationReason === 'completed';
-    options.emit({
-      status: inputTurnCompleted ? 'success' : 'error',
-      result: result.text || null,
-      newSessionId: result.sessionId,
-      sourceKind: options.sourceKindOverride ?? 'sdk_final',
-      finalizationReason: result.finalizationReason,
-      inputTurnCompleted,
-      queryIdle: !options.tracker.hasPendingTurns,
-      ...(receipts.length > 0 ? { ipcReceipts: receipts } : {}),
-      ...(result.error ? { error: result.error } : {}),
-    });
+    // Emit per-turn usage before the terminal status so downstream consumers
+    // still observe the 'success'/'error' status as the last ContainerOutput.
+    // Emitting usage after the terminal status would make that usage stream
+    // event the final output, breaking consumers that read the last output as
+    // the turn result.
     const usageEvent = result.usage
       ? toStreamEvent(
           { type: 'usage', sessionId: result.sessionId, usage: result.usage },
@@ -292,6 +283,17 @@ export async function runPiQueryAttempt(
         streamEvent: usageEvent,
       });
     }
+    options.emit({
+      status: inputTurnCompleted ? 'success' : 'error',
+      result: result.text || null,
+      newSessionId: result.sessionId,
+      sourceKind: options.sourceKindOverride ?? 'sdk_final',
+      finalizationReason: result.finalizationReason,
+      inputTurnCompleted,
+      queryIdle: !options.tracker.hasPendingTurns,
+      ...(receipts.length > 0 ? { ipcReceipts: receipts } : {}),
+      ...(result.error ? { error: result.error } : {}),
+    });
     if (inputTurnCompleted) {
       options.onTurnCompleted();
       if (options.tracker.hasPendingTurns) {
